@@ -219,9 +219,9 @@ function circlePoly(lon, lat, rM) {
 var RISK_COLOR = ['match', ['get', 'g'], 0, GR[0].c, 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GN.c],
     RISK_OPA = ['match', ['get', 'g'], -1, 0.16, 0, 0.36, 1, 0.56, 2, 0.66, 3, 0.74, 0.16],
     LOAD_C = ['#fbc4d4', '#f58fb0', '#e0457f', '#b3125a', '#6d0638'],
-    LOAD_LG = [['0', '#e9eef3'], ['~5', LOAD_C[0]], ['~15', LOAD_C[1]], ['~30', LOAD_C[2]], ['~50', LOAD_C[3]], ['50~', LOAD_C[4]]],
-    LOAD_COLOR = '#ffffff',
-    LOAD_OPA = 0.06;
+    LOAD_LG = [['~5', '#e9eef3'], ['~10', LOAD_C[0]], ['~15', LOAD_C[1]], ['~20', LOAD_C[2]], ['~30', LOAD_C[3]], ['30~', LOAD_C[4]]],
+    LOAD_COLOR = ['step', ['get', 'L'], '#ffffff', 5, LOAD_C[0], 10, LOAD_C[1], 15, LOAD_C[2], 20, LOAD_C[3], 30, LOAD_C[4]],
+    LOAD_OPA = ['step', ['get', 'L'], 0.05, 5, 0.66, 10, 0.72, 15, 0.8, 20, 0.86, 30, 0.92];
 /* 마우스 조작: 왼쪽 끌기 = 회전·기울이기, 휠 누르고 끌기 = 이동, 휠 굴리기 = 확대·축소. 터치 조작은 기본값 그대로 */
 function mouseControls() {
   var cv = map.getCanvasContainer(), mode = null, x0 = 0, y0 = 0, b0 = 0, p0 = 0, moved = false, dragEnd = 0;
@@ -284,7 +284,7 @@ function initMap() {
     map.addLayer({ id: 'emd-line', type: 'line', source: 'emd', paint: { 'line-color': '#ffffff', 'line-opacity': 0.42, 'line-width': 0.7 } });
     map.addLayer({ id: 'sel-line', type: 'line', source: 'emd', filter: ['==', ['get', 'id'], ''], paint: { 'line-color': '#ffffff', 'line-width': 3.2 } });
     map.addLayer({ id: 'cols', type: 'fill-extrusion', source: 'cols', paint: {
-      'fill-extrusion-color': ['case', ['has', 'L'], ['step', ['get', 'L'], LOAD_C[0], 5, LOAD_C[1], 15, LOAD_C[2], 30, LOAD_C[3], 50, LOAD_C[4]], ['match', ['get', 'g'], 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GR[0].c]],
+      'fill-extrusion-color': ['match', ['get', 'g'], 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GR[0].c],
       'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.9 } });
     map.addLayer({ id: 'mk', type: 'circle', source: 'mk', layout: { visibility: 'none' }, paint: { 'circle-radius': 5, 'circle-color': '#ffffff', 'circle-stroke-color': '#14263b', 'circle-stroke-width': 2 } });
     map.on('click', 'emd-fill', function (e) { if (e.features && e.features[0]) select(e.features[0].properties.id, false, true); });
@@ -374,10 +374,6 @@ function paint() {
   if (!loadView) D.emd.forEach(function (e) {
     var r = S.rows[e.id]; if (!r || r.g < 1) return;
     cols.push({ type: 'Feature', properties: { g: r.g, h: Math.round((r.score - 42) * 140) }, geometry: { type: 'Polygon', coordinates: circlePoly(e.lon, e.lat, 1150) } });
-  });
-  else D.emd.forEach(function (e) {                                      // 남은 눈 무게 기둥: 높이 = ㎡당 kg
-    var r = S.rows[e.id], l = r ? loadAt(r, S.day) : null; if (l == null || l < 0.5) return;
-    cols.push({ type: 'Feature', properties: { g: r.g, L: l, h: Math.round(Math.min(l, 60) * 230) }, geometry: { type: 'Polygon', coordinates: circlePoly(e.lon, e.lat, 1150) } });
   });
   map.getSource('cols').setData({ type: 'FeatureCollection', features: cols });
   // 순위 이름표(상위 8곳)
