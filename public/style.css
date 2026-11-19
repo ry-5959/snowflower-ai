@@ -210,8 +210,8 @@ dialog::backdrop{background:rgba(10,22,36,.55)}
 #dayTx{font-weight:700;font-size:12.5px;white-space:nowrap}
 #lgHelp{margin-top:6px;font-size:11.5px}
 .lbars{display:flex;align-items:flex-end;gap:2px;height:64px;margin:8px 0 3px;border-bottom:1px solid var(--line)}
-.lbars i{flex:1;background:#9fc3e6;border-radius:2px 2px 0 0;min-height:2px}
-.lbars i.s{background:#1c56a3}
-.lbars i.now{box-shadow:0 0 0 2px var(--g3)}
+.lbars i{flex:1;background:#f58fb0;border-radius:2px 2px 0 0;min-height:2px}
+.lbars i.s{background:#b3125a}
+.lbars i.now{box-shadow:0 0 0 2px #14263b}
 .lax{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute)}
 .msg .via.basis{margin-top:2px}

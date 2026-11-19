@@ -218,9 +218,10 @@ function circlePoly(lon, lat, rM) {
 }
 var RISK_COLOR = ['match', ['get', 'g'], 0, GR[0].c, 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GN.c],
     RISK_OPA = ['match', ['get', 'g'], -1, 0.16, 0, 0.36, 1, 0.56, 2, 0.66, 3, 0.74, 0.16],
-    LOAD_LG = [['0', '#7c8a80'], ['~5', '#a9b2ac'], ['~15', '#c3c9c5'], ['~30', '#dadedb'], ['~50', '#eceeed'], ['50~', '#ffffff']],
-    LOAD_COLOR = ['step', ['get', 'L'], GN.c, 0, '#ffffff'],
-    LOAD_OPA = ['step', ['get', 'L'], 0.12, 0, 0, 0.5, 0.36, 5, 0.54, 15, 0.72, 30, 0.86, 50, 0.96];
+    LOAD_C = ['#fbc4d4', '#f58fb0', '#e0457f', '#b3125a', '#6d0638'],
+    LOAD_LG = [['0', '#e9eef3'], ['~5', LOAD_C[0]], ['~15', LOAD_C[1]], ['~30', LOAD_C[2]], ['~50', LOAD_C[3]], ['50~', LOAD_C[4]]],
+    LOAD_COLOR = '#ffffff',
+    LOAD_OPA = 0.06;
 /* 마우스 조작: 왼쪽 끌기 = 회전·기울이기, 휠 누르고 끌기 = 이동, 휠 굴리기 = 확대·축소. 터치 조작은 기본값 그대로 */
 function mouseControls() {
   var cv = map.getCanvasContainer(), mode = null, x0 = 0, y0 = 0, b0 = 0, p0 = 0, moved = false, dragEnd = 0;
@@ -283,7 +284,7 @@ function initMap() {
     map.addLayer({ id: 'emd-line', type: 'line', source: 'emd', paint: { 'line-color': '#ffffff', 'line-opacity': 0.42, 'line-width': 0.7 } });
     map.addLayer({ id: 'sel-line', type: 'line', source: 'emd', filter: ['==', ['get', 'id'], ''], paint: { 'line-color': '#ffffff', 'line-width': 3.2 } });
     map.addLayer({ id: 'cols', type: 'fill-extrusion', source: 'cols', paint: {
-      'fill-extrusion-color': ['match', ['get', 'g'], 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GR[0].c],
+      'fill-extrusion-color': ['case', ['has', 'L'], ['step', ['get', 'L'], LOAD_C[0], 5, LOAD_C[1], 15, LOAD_C[2], 30, LOAD_C[3], 50, LOAD_C[4]], ['match', ['get', 'g'], 1, GR[1].c, 2, GR[2].c, 3, GR[3].c, GR[0].c]],
       'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.9 } });
     map.addLayer({ id: 'mk', type: 'circle', source: 'mk', layout: { visibility: 'none' }, paint: { 'circle-radius': 5, 'circle-color': '#ffffff', 'circle-stroke-color': '#14263b', 'circle-stroke-width': 2 } });
     map.on('click', 'emd-fill', function (e) { if (e.features && e.features[0]) select(e.features[0].properties.id, false, true); });
@@ -373,6 +374,10 @@ function paint() {
   if (!loadView) D.emd.forEach(function (e) {
     var r = S.rows[e.id]; if (!r || r.g < 1) return;
     cols.push({ type: 'Feature', properties: { g: r.g, h: Math.round((r.score - 42) * 140) }, geometry: { type: 'Polygon', coordinates: circlePoly(e.lon, e.lat, 1150) } });
+  });
+  else D.emd.forEach(function (e) {                                      // 남은 눈 무게 기둥: 높이 = ㎡당 kg
+    var r = S.rows[e.id], l = r ? loadAt(r, S.day) : null; if (l == null || l < 0.5) return;
+    cols.push({ type: 'Feature', properties: { g: r.g, L: l, h: Math.round(Math.min(l, 60) * 230) }, geometry: { type: 'Polygon', coordinates: circlePoly(e.lon, e.lat, 1150) } });
   });
   map.getSource('cols').setData({ type: 'FeatureCollection', features: cols });
   // 순위 이름표(상위 8곳)
@@ -496,7 +501,7 @@ function loadBlock(r) {
       ? '<p>오늘 <b class="num">㎡당 ' + fmt(at(i0), 0) + ' kg</b> → 가장 많은 날 <b class="num">' + fmt(Math.max.apply(null, ls.slice(i0).map(function (x) { return x.L; })), 0) + ' kg</b> → ' + (n - 1 - i0) + '일 뒤 <b class="num">' + fmt(at(n - 1), 0) + ' kg</b></p>'
       : '<p>눈 그친 날 <b class="num">㎡당 ' + fmt(at(i0), 0) + ' kg</b> → 3일 뒤 <b class="num">' + fmt(at(i0 + 3), 0) + ' kg</b> → 7일 뒤 <b class="num">' + fmt(at(i0 + 7), 0) + ' kg</b></p>';
     h += '<div class="lbars" role="img" aria-label="날짜별 남은 눈 무게">' + ls.map(function (x, i) { return '<i class="' + (x.snow ? 's' : '') + (i === i0 ? ' now' : '') + '" style="height:' + Math.max(3, x.L / mx * 100) + '%" title="' + md(x.t) + ' · ㎡당 ' + x.L + 'kg · 평균 ' + (x.tm == null ? '–' : x.tm) + '℃"></i>'; }).join('') + '</div>' +
-      '<div class="lax num"><span>' + md(ls[0].t) + '</span><span>' + (S.mode === 'forecast' ? '오늘 ' : '눈 그친 날 ') + md(ls[i0].t) + ' (빨간 테두리)</span><span>' + md(ls[n - 1].t) + '</span></div>';
+      '<div class="lax num"><span>' + md(ls[0].t) + '</span><span>' + (S.mode === 'forecast' ? '오늘 ' : '눈 그친 날 ') + md(ls[i0].t) + ' (진한 테두리)</span><span>' + md(ls[n - 1].t) + '</span></div>';
   }
   return h + '<p class="hint">전날 남은 무게 + 새 눈(강설일 강수량 1mm = ㎡당 1kg) − 녹은 양(기온 1℃·하루 ' + K_MELT + 'mm, 가정). 영하가 이어지면 줄지 않습니다. 지붕은 미끄러짐·난방으로 더 빨리 줄 수 있습니다.' +
     (S.mode === 'past' ? ' 시작값은 시군 관측 강수량, 그친 뒤 기온은 Open-Meteo 과거 날씨(재분석 자료)입니다.' : '') + '</p>';
@@ -654,7 +659,7 @@ function via(j) {
 }
 function ctxRows(n) {
   return units().filter(function (u) { return u.g >= 0; }).slice(0, n).map(function (u, i) {
-    return { id: 'R' + (i + 1), 순서: i + 1, 시군: u.sgg, 읍면: u.isDong ? '동 지역(합산)' : u.label, 등급: GR[u.g].k, 위험점수: Math.round(u.score), 눈예보_날짜: S.mode === 'forecast' ? (u.s || null) : undefined, 눈무게_mm: u.P, 눈올때기온: u.tw, 남은눈_kg: u.L == null ? null : Math.round(u.L),
+    return { id: 'R' + (i + 1), 순서: i + 1, 시군: u.sgg, 읍면: u.isDong ? '동 지역(합산)' : u.label, 등급: GR[u.g].k, 같은등급_과거피해율_pct: rateOf(u.g), 위험점수: Math.round(u.score), 눈예보_날짜: S.mode === 'forecast' ? (u.s || null) : undefined, 눈무게_mm: u.P, 눈올때기온: u.tw, 남은눈_kg: u.L == null ? null : Math.round(u.L),
              시설면적_ha: u.fha == null ? null : Math.round(u.fha), 고령비율_pct: u.pop ? Math.round(u.o65 / u.pop * 100) : null, 전통시장: u.mk, _u: u };
   });
 }
@@ -671,12 +676,12 @@ function aiContext(rows) {
     순서기준: '피해 확률 × 시설 면적(ha)',
     순서표: rows.map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { if (k !== '_u') o[k] = r[k]; }); return o; }) };
   if (S.mode === 'past') c.실제피해_억원 = D.cases[S.caseIdx].rows.filter(function (r) { return r.dmg > 0; }).map(function (r) { return { 시군: r.sgg, 피해액: Math.round(eok(r.dmg) * 10) / 10 }; });
-  if (S.sel) { var e = EMD[S.sel], r = S.rows[S.sel] || {}; c.선택한_읍면 = { 시군: e.sgg, 읍면: e.nm, 등급: r.g >= 0 ? GR[r.g].k : '강설 없음', 위험점수: Math.round(r.score || 0), 눈무게_mm: r.P, 눈올때기온: r.tw, 남은눈_kg: loadAt(r), 남은눈_3일뒤_kg: r.load ? loadAt(r, r.li + 3) : null, 시설면적_ha: e.fha, 인구: e.pop, 고령_65세이상: e.o65, 전통시장: e.mk }; }
+  if (S.sel) { var e = EMD[S.sel], r = S.rows[S.sel] || {}; c.선택한_읍면 = { 시군: e.sgg, 읍면: e.nm, 등급: r.g >= 0 ? GR[r.g].k : '강설 없음', 같은등급_과거피해율_pct: r.g >= 0 ? rateOf(r.g) : null, 위험점수: Math.round(r.score || 0), 눈무게_mm: r.P, 눈올때기온: r.tw, 남은눈_kg: loadAt(r), 남은눈_3일뒤_kg: r.load ? loadAt(r, r.li + 3) : null, 시설면적_ha: e.fha, 인구: e.pop, 고령_65세이상: e.o65, 전통시장: e.mk }; }
   return c;
 }
 /* 질문에 읍면·시군 이름이 나오면 그곳 수치를 함께 넘긴다(순서표 12위 밖이어도 답할 수 있게) */
 function rowOf(u, id, rank) {
-  return { id: id, 전체순서: u.g >= 0 ? rank : null, 시군: u.sgg, 읍면: u.isDong ? '동 지역(합산)' : u.label, 등급: u.g >= 0 ? GR[u.g].k : '강설 없음', 위험점수: Math.round(u.score || 0), 눈예보_날짜: S.mode === 'forecast' ? (u.s || null) : undefined, 눈무게_mm: u.P, 눈올때기온: u.tw,
+  return { id: id, 전체순서: u.g >= 0 ? rank : null, 시군: u.sgg, 읍면: u.isDong ? '동 지역(합산)' : u.label, 등급: u.g >= 0 ? GR[u.g].k : '강설 없음', 같은등급_과거피해율_pct: u.g >= 0 ? rateOf(u.g) : null, 위험점수: Math.round(u.score || 0), 눈예보_날짜: S.mode === 'forecast' ? (u.s || null) : undefined, 눈무게_mm: u.P, 눈올때기온: u.tw,
            남은눈_kg: u.L == null ? null : Math.round(u.L), 시설면적_ha: u.fha == null ? null : Math.round(u.fha), 고령비율_pct: u.pop ? Math.round(u.o65 / u.pop * 100) : null, 전통시장: u.mk, _u: u };
 }
 function stemOf(nm) { return nm.replace(/(읍|면|동|시|군)$/, ''); }
@@ -697,7 +702,7 @@ function mentioned(q) {
   var sg = Object.keys(sgIn).slice(0, 2).map(function (name) {
     var cnt = { 매우높음: 0, 높음: 0, 보통: 0, 낮음: 0, 강설없음: 0 }, top = [];
     us.forEach(function (u, i) { if (u.sgg !== name) return; if (u.g < 0) { cnt.강설없음++; return; } cnt[GR[u.g].k.replace(' ', '')]++;
-      if (top.length < 3) top.push({ 읍면: u.isDong ? '동 지역(합산)' : u.label, 전체순서: i + 1, 등급: GR[u.g].k, 위험점수: Math.round(u.score || 0), 눈무게_mm: u.P, 남은눈_kg: u.L == null ? null : Math.round(u.L) }); });
+      if (top.length < 3) top.push({ 읍면: u.isDong ? '동 지역(합산)' : u.label, 전체순서: i + 1, 등급: GR[u.g].k, 같은등급_과거피해율_pct: rateOf(u.g), 위험점수: Math.round(u.score || 0), 눈무게_mm: u.P, 남은눈_kg: u.L == null ? null : Math.round(u.L) }); });
     return { 시군: name, 등급별_읍면수: cnt, 위험_높은_순: top };
   });
   return { rows: hit.slice(0, 4), sgg: sg };
@@ -795,7 +800,7 @@ function init() {
   $('mkBtn').onclick = function () { var on = this.getAttribute('aria-pressed') !== 'true'; this.setAttribute('aria-pressed', on); if (ready) map.setLayoutProperty('mk', 'visibility', on ? 'visible' : 'none'); };
   $('rotBtn').setAttribute('aria-pressed', S.rot); $('rotBtn').onclick = function () { S.rot = !S.rot; this.setAttribute('aria-pressed', S.rot); lastAct = S.rot ? 0 : Date.now(); };
   $('relBtn').onclick = function () { reliefOn(this.getAttribute('aria-pressed') !== 'true'); };
-  $('lgL').innerHTML = LOAD_LG.map(function (c, i) { return '<span style="background:' + c[1] + ';color:' + (i <= 1 ? '#fff' : '#1a1a1a') + ';box-shadow:inset 0 0 0 1px #c3ced9">' + c[0] + '</span>'; }).join('');
+  $('lgL').innerHTML = LOAD_LG.map(function (c, i) { return '<span style="background:' + c[1] + ';color:' + (i >= 3 ? '#fff' : '#1a1a1a') + '">' + c[0] + '</span>'; }).join('');
   $('loadBtn').onclick = function () { S.view = S.view === 'load' ? 'risk' : 'load'; S.day = null; syncLoadUi(); paint(); };
   $('daySl').oninput = function () { S.day = +this.value; syncLoadUi(); paint(); };
   $('exBtn').onclick = function () { var on = this.getAttribute('aria-pressed') !== 'true'; this.setAttribute('aria-pressed', on); if (ready && !flat) map.setTerrain({ source: 'dem', exaggeration: EXAG[on ? 1 : 0] }); };
