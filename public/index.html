@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>눈의꽃 AI — 대설 피해 예보와 점검 순서표</title>
+<meta name="description" content="강원 읍면동 188곳의 대설 피해 위험을 실제 예보로 계산해, 어디부터 점검할지 순서를 정해 주는 지자체용 도구">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&display=swap">
+<link rel="stylesheet" href="lib/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <main id="stage">
+    <div id="map" aria-label="강원 읍면동 대설 피해 위험 3D 지도"></div>
+
+    <header id="brand">
+      <h1>눈의꽃 AI</h1>
+      <p>대설 피해 예보와 점검 순서표</p>
+    </header>
+
+    <div id="mode" role="group" aria-label="보기 전환">
+      <button id="mFc" aria-pressed="true">앞으로 3일 예보</button>
+      <button id="mPast" aria-pressed="false">과거 대설 재현</button>
+      <span id="caseWrap"><select id="caseSel" aria-label="재현할 과거 대설"></select></span>
+    </div>
+
+    <aside id="board" aria-label="점검 순서표와 근거">
+      <div id="tabs" role="tablist">
+        <button role="tab" data-tab="rankP" aria-selected="true">점검 순서표</button>
+        <button role="tab" data-tab="infoP" aria-selected="false">읍면 정보</button>
+        <button role="tab" data-tab="valP" aria-selected="false">검증</button>
+        <button id="foldBtn" aria-label="판 접기" title="판 접기·펴기">▾</button>
+      </div>
+      <div id="scen"></div>
+      <section class="pane on" id="rankP"></section>
+      <section class="pane" id="infoP"></section>
+      <section class="pane" id="valP"></section>
+    </aside>
+
+    <div id="elev" hidden aria-live="off"></div>
+
+    <div id="ctl">
+      <button id="fieldBtn">현장 제보</button>
+      <button id="baseBtn" aria-pressed="true">시가지 강조</button>
+      <button id="mkBtn" aria-pressed="false">전통시장</button>
+      <button id="rotBtn" aria-pressed="true">자동 회전</button>
+      <button id="relBtn" aria-pressed="false">고도 색</button>
+      <button id="exBtn" aria-pressed="false">지형 강조</button>
+    </div>
+
+    <div id="legend">
+      <b>피해 위험 등급</b> <span class="hint">아래 숫자는 과거 같은 등급의 실제 피해율</span>
+      <div class="lg" id="lg"></div>
+      <div class="lr" id="lr"></div>
+      <div id="lgCity"><i></i>밝은 곳은 시가지·마을·도로 <span class="hint">위성사진 밝기로 강조</span></div>
+      <div id="lgElev" hidden><b>해발 고도</b><div id="lgRamp"></div><div class="lr"><span>0</span><span>500</span><span>1,000</span><span>1,500 m~</span></div></div>
+    </div>
+  </main>
+
+  <aside id="chat" aria-label="AI 상황 도우미">
+    <div id="chatHead">
+      <h2>AI 상황 도우미</h2>
+      <p>지도에 있는 수치로만 답합니다</p>
+      <span id="aiState">확인 중</span>
+    </div>
+    <div id="log" aria-live="polite"></div>
+    <div id="sugg"></div>
+    <form id="ask">
+      <input id="q" autocomplete="off" placeholder="예: 어디부터 가야 해?" aria-label="질문">
+      <button class="btn" type="submit">묻기</button>
+    </form>
+  </aside>
+</div>
+
+<dialog id="reportDlg"><div class="dlg" id="reportBody"></div></dialog>
+
+<dialog id="fieldDlg">
+  <form class="dlg" method="dialog" id="fieldForm">
+    <h2>현장 제보</h2>
+    <p class="hint">시제품 기능입니다. 제보는 이 기기에만 저장되고 지도에 표시됩니다.</p>
+    <label for="fEmd">읍면동</label>
+    <select id="fEmd"></select>
+    <label for="fType">상태</label>
+    <select id="fType">
+      <option>지붕·골조 처짐</option><option>붕괴</option><option>제설 필요</option><option>고립</option><option>이상 없음</option>
+    </select>
+    <label for="fMemo">메모</label>
+    <textarea id="fMemo" rows="3" placeholder="예: 연동 하우스 3동, 눈 40cm 쌓임"></textarea>
+    <div class="foot">
+      <button class="btn line" value="cancel" type="button" id="fCancel">닫기</button>
+      <button class="btn" value="ok" type="submit">제보 저장</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="lib/maplibre-gl.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

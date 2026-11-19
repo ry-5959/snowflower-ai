@@ -1,0 +1,4 @@
+# 눈의꽃 AI — Netlify 설정 (빌드 과정 없음. public 폴더를 그대로 올린다)
+[build]
+  publish = "public"
+  functions = "netlify/functions"
