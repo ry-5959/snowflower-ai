@@ -22,6 +22,7 @@
 | `GEMINI_API_KEY` | Google AI Studio에서 받은 Gemini 키 |
 | `KMA_SERVICE_KEY` | 공공데이터포털 「기상청_단기예보 조회서비스」 인증키 |
 | `VWORLD_KEY` | 브이월드(vworld.kr) 오픈API 인증키. 없으면 Sentinel-2 위성사진으로 표시 |
+| `VWORLD_PUBLIC` | `yes`로 넣으면 브라우저가 브이월드에서 직접 타일을 받음(키가 방문자의 요청 주소에 보임). 서버 전달이 될 때는 필요 없음 |
 
 키가 없어도 지도·예보·순서표·검증은 작동합니다. AI 문장은 규칙으로 만든 문장으로 바뀌고 화면에 그렇게 표시됩니다.
 

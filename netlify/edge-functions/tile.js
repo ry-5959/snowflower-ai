@@ -1,5 +1,6 @@
 /* 눈의꽃 AI — 국토교통부 브이월드 항공사진·지명 타일 전달
-   키는 Netlify 환경변수 VWORLD_KEY 에만 있다(화면 소스·저장소에는 없음). 타일은 저장하지 않고 그대로 전달만 한다. */
+   키는 Netlify 환경변수 VWORLD_KEY 에만 있다(화면 소스·저장소에는 없음). 타일은 저장하지 않고 그대로 전달만 한다.
+   브이월드가 해외 서버의 접속을 받지 않으면 전달이 안 되므로, 그때는 VWORLD_PUBLIC=yes 일 때에 한해 브라우저 직접 요청으로 바꾼다. */
 const env = (k) => {
   try { if (globalThis.Netlify && Netlify.env && Netlify.env.get(k)) return Netlify.env.get(k); } catch (e) {}
   return "";
@@ -20,8 +21,15 @@ export default async (request) => {
     const key = env("VWORLD_KEY");
     if (url.pathname === "/api/tile/ping") {
       if (!key) return json({ ok: true, key: false });
-      const t = await getTile(key, "Satellite", 8, 99, 219, url.origin); // 강원 영서 한 장으로 키가 통하는지 확인
-      return json({ ok: true, key: true, tile: t.ok, status: t.r.status });
+      let relay = false, status = 0;
+      try { const t = await getTile(key, "Satellite", 8, 99, 219, url.origin); relay = t.ok; status = t.r.status; } catch (e) { relay = false; } // 서버에서 브이월드에 닿는지
+      // 서버 전달이 막혀 있으면 방문자 브라우저가 브이월드에서 직접 받는다. 이때는 키가 방문자의 요청 주소에 보이므로,
+      // 운영자가 Netlify 환경변수 VWORLD_PUBLIC=yes 로 허용했을 때만, 같은 사이트에서 온 요청에만 키를 내준다.
+      let direct = null;
+      const ref = request.headers.get("referer");
+      let same = false; try { same = !!ref && new URL(ref).host === url.host; } catch (e) {}
+      if (!relay && same && String(env("VWORLD_PUBLIC")).toLowerCase() === "yes") direct = key;
+      return json({ ok: true, key: true, tile: relay, status, direct });
     }
     const m = url.pathname.match(/^\/api\/tile\/(Satellite|Hybrid)\/(\d{1,2})\/(\d{1,7})\/(\d{1,7})$/);
     if (!m) return new Response("bad request", { status: 400 });

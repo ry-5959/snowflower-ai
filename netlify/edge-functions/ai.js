@@ -98,9 +98,9 @@ async function handle(request, opt) {
   return json({ ok: false, reason: last, ms: Date.now() - t0 });
 }
 
-// Netlify Edge Function: 응답을 오래 기다릴 수 있어 주 경로로 쓴다.
+// Netlify Edge Function(주 경로): 빠른 모델부터 최대 3개까지 차례로 시도한다.
 export default async (request) => {
-  try { return await handle(request, { name: "edge", fast: false, tries: 3, per: 16000, budget: 34000 }); }
+  try { return await handle(request, { name: "edge", fast: true, tries: 3, per: 9000, budget: 24000 }); }
   catch (e) { return json({ ok: false, reason: "error" }, 500); }
 };
 export const config = { path: "/api/ai" };

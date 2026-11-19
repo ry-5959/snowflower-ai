@@ -245,18 +245,27 @@ function showElev(e) {
 }
 /* 국토교통부 브이월드 항공사진 + 도로·지명. 배포된 사이트에서 키가 설정돼 있을 때만 켜진다. */
 function tryVworld() {
-  fetch('/api/tile/ping').then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
-    if (!j || !j.key || !j.tile || !ready) return;
+  var VW = 'https://api.vworld.kr/req/wmts/1.0.0/';
+  function enable(satUrl, hybUrl) {
     S.vw = true;
     var att = '항공사진·지명 <a href="https://www.vworld.kr" target="_blank" rel="noopener">국토교통부 브이월드</a>';
-    map.addSource('vsat', { type: 'raster', tiles: [location.origin + '/api/tile/Satellite/{z}/{y}/{x}'], tileSize: 256, minzoom: 6, maxzoom: 19, attribution: att });
-    map.addSource('vhyb', { type: 'raster', tiles: [location.origin + '/api/tile/Hybrid/{z}/{y}/{x}'], tileSize: 256, minzoom: 6, maxzoom: 19 });
+    map.addSource('vsat', { type: 'raster', tiles: [satUrl], tileSize: 256, minzoom: 6, maxzoom: 19, attribution: att });
+    map.addSource('vhyb', { type: 'raster', tiles: [hybUrl], tileSize: 256, minzoom: 6, maxzoom: 19 });
     map.addLayer({ id: 'vsat', type: 'raster', source: 'vsat' }, 'relief');
     map.addLayer({ id: 'vhyb', type: 'raster', source: 'vhyb' }, 'cols');
     map.getSource('sat').setTiles([SAT_PLAIN]);   // 바다·경계 밖 바탕용
     map.setMaxZoom(17.6);
     $('baseBtn').textContent = '도로·지명'; $('baseBtn').setAttribute('aria-pressed', true);
     $('lgCity').innerHTML = '항공사진·도로·지명: 국토교통부 브이월드'; $('lgCity').hidden = false;
+  }
+  fetch('/api/tile/ping').then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
+    if (!j || !j.key || !ready) return;
+    if (j.tile) return enable(location.origin + '/api/tile/Satellite/{z}/{y}/{x}', location.origin + '/api/tile/Hybrid/{z}/{y}/{x}');
+    if (!j.direct) return;
+    // 브라우저에서 직접 받기 전에 한 장을 받아 보고, 사진이 실제로 올 때만 켠다
+    return fetch(VW + j.direct + '/Satellite/8/99/219.jpeg').then(function (r) {
+      if (r.ok && /^image\//.test(r.headers.get('content-type') || '')) enable(VW + j.direct + '/Satellite/{z}/{y}/{x}.jpeg', VW + j.direct + '/Hybrid/{z}/{y}/{x}.png');
+    });
   }).catch(function () { /* 로컬 파일이거나 키가 없으면 기존 위성사진 그대로 */ });
 }
 function reliefOn(on) {
@@ -506,7 +515,7 @@ function pingAI() {
     .catch(function () { setAiState('off', 'AI 연결 전 · 규칙 문장으로 답함'); });
 }
 function callAI(task, payload) {
-  var body = JSON.stringify(Object.assign({ task: task }, payload)), eps = [['/api/ai', 30000], ['/.netlify/functions/ai', 10500]], i = 0, last = 'fail';
+  var body = JSON.stringify(Object.assign({ task: task }, payload)), eps = [['/api/ai', 26000], ['/.netlify/functions/ai', 10500]], i = 0, last = 'fail';
   function next() {
     if (i >= eps.length) return Promise.resolve({ ok: false, reason: last });
     var ep = eps[i++], ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, ep[1]);
@@ -567,7 +576,7 @@ function showPlaces(places, rows) {
 function ask(q) {
   q = (q || '').trim(); if (!q) return; addMsg('me', q); $('q').value = '';
   var wait = addMsg('ai', '수치를 확인하는 중'); wait.classList.add('dots');
-  var rows = ctxRows(20);
+  var rows = ctxRows(12);
   callAI('chat', { ctx: aiContext(rows), q: q, history: S.hist.slice(-4) }).then(function (j) {
     var out = j.ok && j.data && j.data.answer ? j.data : ruleChat(), src = via(j.ok && j.data && j.data.answer ? j : (j.ok ? { ok: false } : j));
     wait.remove(); var extra = document.createDocumentFragment(), pl = showPlaces(out.places, rows);
