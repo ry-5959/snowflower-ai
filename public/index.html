@@ -44,6 +44,7 @@
 
     <div id="ctl">
       <button id="fieldBtn">현장 제보</button>
+      <button id="loadBtn" aria-pressed="false">남은 눈 무게</button>
       <button id="baseBtn" aria-pressed="true">시가지 강조</button>
       <button id="mkBtn" aria-pressed="false">전통시장</button>
       <button id="rotBtn" aria-pressed="true">자동 회전</button>
@@ -52,11 +53,19 @@
     </div>
 
     <div id="legend">
-      <b>피해 위험 등급</b> <span class="hint">아래 숫자는 과거 같은 등급의 실제 피해율</span>
-      <div class="lg" id="lg"></div>
-      <div class="lr" id="lr"></div>
+      <div id="lgRisk">
+        <b>피해 위험 등급</b> <span class="hint">아래 숫자는 과거 같은 등급의 실제 피해율</span>
+        <div class="lg" id="lg"></div>
+        <div class="lr" id="lr"></div>
+      </div>
+      <div id="lgLoad" hidden>
+        <b>남은 눈 무게</b> <span class="hint">㎡당 kg · 지상 기준 추정</span>
+        <div class="lg" id="lgL"></div>
+        <div id="dayBar"><input type="range" id="daySl" min="0" max="0" value="0" aria-label="날짜 고르기"><span id="dayTx" class="num"></span></div>
+      </div>
       <div id="lgCity"><i></i>밝은 곳은 시가지·마을·도로 <span class="hint">위성사진 밝기로 강조</span></div>
       <div id="lgElev" hidden><b>해발 고도</b><div id="lgRamp"></div><div class="lr"><span>0</span><span>500</span><span>1,000</span><span>1,500 m~</span></div></div>
+      <div id="lgHelp" class="hint">마우스: 왼쪽 끌기 회전 · 휠 누르고 끌기 이동 · 휠 굴리기 확대</div>
     </div>
   </main>
 
